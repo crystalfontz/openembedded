@@ -1,0 +1,216 @@
+--- xserver/hw/kdrive/fbdev/fbdev.c	2010-09-23 19:41:58.217591463 +0800
++++ xserver/hw/kdrive/fbdev/fbdev.c	2010-09-23 19:39:49.213591063 +0800
+@@ -400,6 +400,14 @@ fbdevUnmapFramebuffer (KdScreenInfo *scr
+     return TRUE;
+ }
+ 
++void
++myshadowUpdatePacked (ScreenPtr	    pScreen,
++		    shadowBufPtr    pBuf)
++{
++	fprintf (stderr, "calling shadowupdate2\n");
++	shadowUpdateRotatePacked(pScreen, pBuf);
++}
++
+ Bool
+ fbdevSetShadow (ScreenPtr pScreen)
+ {
+@@ -418,34 +426,46 @@ fbdevSetShadow (ScreenPtr pScreen)
+     useYX = 1;
+ #endif
+ 
++//	fprintf (stderr, "%s:%d\n", __func__, __LINE__);
+     window = fbdevWindowLinear;
+     update = 0;
+-    if (scrpriv->randr)
++    if (scrpriv->randr) {
++//	fprintf (stderr, "%s:%d\n", __func__, __LINE__);
+ 	if (priv->var.bits_per_pixel == 16) {
++//	fprintf (stderr, "%s:%d\n", __func__, __LINE__);
+ 	    switch (scrpriv->randr) {
+ 	    case RR_Rotate_90:
++//	fprintf (stderr, "%s:%d\n", __func__, __LINE__);
+ 		if (useYX)
+ 		    update = shadowUpdateRotate16_90YX;
+ 		else
+ 		    update =  shadowUpdateRotate16_90;
+ 		break;
+ 	    case RR_Rotate_180:
++//	fprintf (stderr, "%s:%d\n", __func__, __LINE__);
+ 		update = shadowUpdateRotate16_180;
+ 		break;
+ 	    case RR_Rotate_270:
++//	fprintf (stderr, "%s:%d\n", __func__, __LINE__);
+ 		if (useYX)
+ 		    update = shadowUpdateRotate16_270YX;
+ 		else
+ 		    update =  shadowUpdateRotate16_270;
+ 		break;
+ 	    default:
++//	fprintf (stderr, "%s:%d\n", __func__, __LINE__);
+ 		update = shadowUpdateRotate16;
+ 		break;
+ 	    }
+-	} else
+-	    update = shadowUpdateRotatePacked;
+-    else
+-	update = shadowUpdatePacked;
++	} else {
++//	fprintf (stderr, "%s:%d\n", __func__, __LINE__);
++	update = myshadowUpdatePacked;
++	}
++    } else {
++//	fprintf (stderr, "%s:%d\n", __func__, __LINE__);
++	update = myshadowUpdatePacked;
++	}
++//	fprintf (stderr, "%s:%d\n", __func__, __LINE__);
+     return KdShadowSet (pScreen, scrpriv->randr, update, window);
+ }
+ 
+@@ -647,10 +667,136 @@ fbdevFinishInitScreen (ScreenPtr pScreen
+     return TRUE;
+ }
+ 
++struct fb_damage_rects {
++	unsigned short x;
++	unsigned short y;
++	unsigned short w;
++	unsigned short h;
++} __attribute__((packed));
++
++struct fb_damage_user {
++	int len;
++      struct fb_damage_rects        *rects;
++} __attribute__((packed));
++	
++static void
++ephyrInternalDamageBlockHandler (pointer   data,
++				 OSTimePtr pTimeout,
++				 pointer   pRead)
++{
++  ScreenPtr pScreen = (ScreenPtr) data;
++  KdScreenPriv(pScreen);
++  KdScreenInfo	*screen = pScreenPriv->screen;
++    FbdevScrPriv	*scrpriv = screen->driver;
++  RegionPtr	 pRegion;
++    FbdevPriv		*priv = pScreenPriv->card->driver;
++    int			k;
++
++//	fprintf (stderr, "%s:%d\n", __func__, __LINE__);
++  if (!scrpriv )
++    return;
++  
++//	fprintf (stderr, "%s:%d\n", __func__, __LINE__);
++if (!scrpriv || !scrpriv->pDamage)
++    return;
++
++//	fprintf (stderr, "%s:%d\n", __func__, __LINE__);
++  pRegion = DamageRegion (scrpriv->pDamage);
++
++  if (REGION_NOTEMPTY (pScreen, pRegion))
++    {
++      int           nbox;
++      BoxPtr        pbox;
++	struct fb_damage_user damage;
++	struct fb_damage_rects *rects;
++	int i=0;
++	int tmp1,tmp2;
++      
++      nbox = REGION_NUM_RECTS (pRegion);
++//	fprintf (stderr, "%s:%d %d\n", __func__, __LINE__, nbox);
++	damage.len = nbox;
++//	damage.custom = 3;
++      pbox = REGION_RECTS (pRegion);
++	damage.rects = pbox;
++//	rects = damage.rects = malloc(nbox * sizeof(damage.rects));
++//	fprintf (stderr, "%s:%d nbox=%d pbox=%p\n", __func__, __LINE__, nbox, pbox);
++      
++      while (nbox--)
++	{
++#if 0
++	  fprintf(stderr, "blah %d,%d,%d,%d\n", pbox->x1, pbox->y1,
++			   pbox->x2 - pbox->x1,
++			   pbox->y2 - pbox->y1);
++#endif
++#if 0
++	  hostx_paint_rect(pbox->x1, pbox->y1,
++			   pbox->x1, pbox->y1,
++			   pbox->x2 - pbox->x1,
++			   pbox->y2 - pbox->y1);
++#endif
++#if 0
++	rects[i].x = min(pbox->x2 , pbox->x1);
++	rects[i].y = min(pbox->y2 , pbox->y1);
++	rects[i].w = max(pbox->x2 , pbox->x1) - rects->x;
++	rects[i].h = max(pbox->y2 , pbox->y1) - rects->y;
++#endif
++	tmp1 = min(pbox->x2 , pbox->x1);
++	tmp2 = min(pbox->y2 , pbox->y1);
++	pbox->x2 = max(pbox->x2 , pbox->x1) - tmp1;
++	pbox->y2 = max(pbox->y2 , pbox->y1) - tmp2;
++	pbox->x1 = tmp1;
++	pbox->y1 = tmp2;
++
++	  pbox++;
++	  i++;
++	}
++      
++    k = ioctl (priv->fd, 0x4619, &damage);
++    if (k < 0)
++    {
++	perror ("ioctl damage");
++    }
++//	free(damage.rects); 
++      DamageEmpty (scrpriv->pDamage);
++    }
++
++//	fprintf (stderr, "%s:%d\n", __func__, __LINE__);
++//  ephyrInternalDamageRedisplay (pScreen);
++}
++
++static void
++ephyrInternalDamageWakeupHandler (pointer data, int i, pointer LastSelectMask)
++{
++  /* FIXME: Not needed ? */
++}
++
++
+ 
+ Bool
+ fbdevCreateResources (ScreenPtr pScreen)
+ {
++  KdScreenPriv(pScreen);
++  KdScreenInfo	*screen = pScreenPriv->screen;
++    FbdevScrPriv	*scrpriv = screen->driver;
++  PixmapPtr      pPixmap = NULL;
++
++  scrpriv->pDamage = DamageCreate ((DamageReportFunc) 0,
++				   (DamageDestroyFunc) 0,
++				   DamageReportNone,
++				   TRUE,
++				   pScreen,
++				   pScreen);
++
++if (!RegisterBlockAndWakeupHandlers (ephyrInternalDamageBlockHandler,
++				       ephyrInternalDamageWakeupHandler,
++				       (pointer) pScreen))
++    return FALSE;
++  
++  pPixmap = (*pScreen->GetScreenPixmap) (pScreen);
++  
++  DamageRegister (&pPixmap->drawable, scrpriv->pDamage);
++ 
++
+     return fbdevSetShadow (pScreen);
+ }
+ 
+--- xserver/hw/kdrive/fbdev/fbdev.h	2007-11-06 22:37:25.000000000 +0800
++++ xserver/hw/kdrive/fbdev/fbdev.h	2010-09-23 19:39:52.081087811 +0800
+@@ -47,6 +47,7 @@ typedef struct _fbdevScrPriv {
+     Rotation			randr;
+     Bool			shadow;
+     PixmapPtr			pShadow;
++    DamagePtr   pDamage;
+ } FbdevScrPriv;
+ 
+ extern KdCardFuncs  fbdevFuncs;
