@@ -39,6 +39,7 @@ IMAGE_INSTALL = "\
     xclock \
     gdk-pixbuf-loader-ani gdk-pixbuf-loader-bmp gdk-pixbuf-loader-gif gdk-pixbuf-loader-icns gdk-pixbuf-loader-ico gdk-pixbuf-loader-jpeg gdk-pixbuf-loader-pcx gdk-pixbuf-loader-png gdk-pixbuf-loader-pnm gdk-pixbuf-loader-qtif gdk-pixbuf-loader-ras gdk-pixbuf-loader-tga gdk-pixbuf-loader-tiff gdk-pixbuf-loader-wbmp gdk-pixbuf-loader-xbm gdk-pixbuf-loader-xpm \
     eog xterm evince \
+    ipkg-utils networkmanager fennec \
     ${SPLASH} \
     ${ANGSTROM_EXTRA_INSTALL}"
 
