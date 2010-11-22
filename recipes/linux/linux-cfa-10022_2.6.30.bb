@@ -1,6 +1,6 @@
 require linux.inc
 
-PR = "r4"
+PR = "r5"
 
 BASE_KERNEL_VERSION = "2.6.30"
 KERNEL_VERSION = "2.6.30"
