@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.30
-# Tue Oct  5 11:28:24 2010
+# Thu Dec  2 17:22:05 2010
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -1395,6 +1395,7 @@ CONFIG_STAGING=y
 # CONFIG_USB_ATMEL is not set
 # CONFIG_AGNX is not set
 # CONFIG_OTUS is not set
+CONFIG_RT2870=y
 # CONFIG_COMEDI is not set
 # CONFIG_ASUS_OLED is not set
 # CONFIG_INPUT_MIMIO is not set
