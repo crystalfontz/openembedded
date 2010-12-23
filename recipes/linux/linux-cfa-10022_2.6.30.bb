@@ -1,6 +1,6 @@
 require linux.inc
 
-PR = "r6"
+PR = "r7"
 
 BASE_KERNEL_VERSION = "2.6.30"
 KERNEL_VERSION = "2.6.30"
@@ -13,6 +13,6 @@ DEFAULT_PREFERENCE_cfa-10022 = "1"
 S = "${WORKDIR}/git/"
 
 # Local Repo
-SRC_URI = "git://github.com/crystalfontz/linux-2.6.git;protocol=git;branch=cfa-10022-v0.3;tag=cfa910_fw_v0.8 \
+SRC_URI = "git://github.com/crystalfontz/linux-2.6.git;protocol=git;branch=cfa-10022-v0.3;tag=cfa910_fw_v0.9 \
            file://defconfig"
 

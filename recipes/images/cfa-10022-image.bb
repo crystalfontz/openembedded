@@ -25,6 +25,7 @@ IMAGE_INSTALL = "\
     matchbox-config-gtk \
     matchbox-themes-gtk \
     matchbox-applet-startup-monitor \
+    matchbox-panel-hacks xmodmap \
     sato-icon-theme \
     settings-daemon \
     abiword \
